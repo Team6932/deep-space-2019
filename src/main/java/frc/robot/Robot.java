@@ -85,6 +85,7 @@ public class Robot extends TimedRobot {
       centerX = this.centerX;
     }
     double turn = centerX - (IMG_WIDTH / 2);
+    System.out.println(turn);
     m_tankDrive.arcadeDrive(-0.6, turn * 0.005);
   }
 

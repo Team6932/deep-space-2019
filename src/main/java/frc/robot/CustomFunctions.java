@@ -11,8 +11,8 @@ public class CustomFunctions {
     // Non-blocking functions
 
     // Adjust joystick values for slider
-    public double ratioValue(double val) {
+    public double controlCurve(double val) {
         //return val * (((vars.driveControl.getRawAxis(vars.ratioAxis) * -1) + 1) / 2);
-        return val * 0.3;
+        return val * 0.275;
     }
 }

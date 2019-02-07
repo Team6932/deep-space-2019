@@ -1,6 +1,7 @@
 package frc.robot;
 
 import edu.wpi.first.wpilibj.*;
+import edu.wpi.first.wpilibj.drive.DifferentialDrive;
 import edu.wpi.first.wpilibj.drive.MecanumDrive;
 import edu.wpi.first.wpilibj.interfaces.Gyro;
 
@@ -14,9 +15,12 @@ public class InstanceStorage {
     // Motor controllers
     public PWMVictorSPX frontLeft = new PWMVictorSPX(0);
     public PWMVictorSPX frontRight = new PWMVictorSPX(1);
-    public PWMVictorSPX rearRight = new PWMVictorSPX(2);
-    public PWMVictorSPX rearLeft = new PWMVictorSPX(3);
+    public PWMVictorSPX rearRight = new PWMVictorSPX(3);
+    public PWMVictorSPX rearLeft = new PWMVictorSPX(2);
     public MecanumDrive drive = new MecanumDrive(frontLeft, rearLeft, frontRight, rearRight);
+    /*public Spark leftDrive = new Spark(0);
+    public Spark rightDrive = new Spark(1);
+    public DifferentialDrive drive = new DifferentialDrive(leftDrive, rightDrive);*/
 
     // Joystick/Controller
     public Joystick joystick = new Joystick(0);
@@ -24,10 +28,9 @@ public class InstanceStorage {
 
     // Controller Configuration
     public Joystick driveControl = controller;
-    public int yAxis = 0;
-    public int xAxis = 1;
-    public int zAxis = 2;
-    public int ratioAxis = 3;
+    public int yAxis = 2;
+    public int xAxis = 3;
+    public int zAxis = 0;
 
     // Motor configuration
     public double driveKp = 0.1;

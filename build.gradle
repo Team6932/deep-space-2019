@@ -51,7 +51,6 @@ repositories {
 dependencies {
     compile wpi.deps.wpilib()
     //TODO: Wait for WPILib to fix
-    compile 'com.github.ewang4255:allwpilib:patch-1-SNAPSHOT'
     compile wpi.deps.vendor.java()
     nativeZip wpi.deps.vendor.jni(wpi.platforms.roborio)
     nativeDesktopZip wpi.deps.vendor.jni(wpi.platforms.desktop)

@@ -1,6 +1,10 @@
 package frc.robot;
 
-import edu.wpi.first.wpilibj.*;
+import edu.wpi.first.wpilibj.ADXRS450_Gyro;
+import edu.wpi.first.wpilibj.Compressor;
+import edu.wpi.first.wpilibj.DoubleSolenoid;
+import edu.wpi.first.wpilibj.Joystick;
+import edu.wpi.first.wpilibj.PWMVictorSPX;
 import edu.wpi.first.wpilibj.drive.MecanumDrive;
 import edu.wpi.first.wpilibj.interfaces.Gyro;
 
@@ -22,7 +26,7 @@ public class InstanceStorage {
     public DifferentialDrive drive = new DifferentialDrive(leftDrive, rightDrive);*/
 
     // Ultrasonic sensors
-    public Ultrasonic leftUltra = new Ultrasonic(1, 0);
+    public Ultrasonic leftUltra = new Ultrasonic(0, 1);
     public Ultrasonic rightUltra = new Ultrasonic(3, 2);
 
     // Line sensors

@@ -1,7 +1,6 @@
 package frc.robot;
 
 import edu.wpi.first.wpilibj.*;
-import edu.wpi.first.wpilibj.drive.DifferentialDrive;
 import edu.wpi.first.wpilibj.drive.MecanumDrive;
 import edu.wpi.first.wpilibj.interfaces.Gyro;
 
@@ -21,6 +20,17 @@ public class InstanceStorage {
     /*public Spark leftDrive = new Spark(0);
     public Spark rightDrive = new Spark(1);
     public DifferentialDrive drive = new DifferentialDrive(leftDrive, rightDrive);*/
+
+    // Ultrasonic sensors
+    public Ultrasonic leftUltra = new Ultrasonic(1, 0);
+    public Ultrasonic rightUltra = new Ultrasonic(3, 2);
+
+    // Line sensors
+    //public AnalogInput leftLine = new AnalogInput(0);
+
+    // Pneumatics
+    Compressor compressor = new Compressor(1);
+    DoubleSolenoid claw = new DoubleSolenoid(1, 1, 0);
 
     // Joystick/Controller
     public Joystick joystick = new Joystick(0);

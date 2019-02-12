@@ -1,5 +1,7 @@
 package frc.robot;
 
+import edu.wpi.first.wpilibj.AnalogInput;
+
 public class CustomFunctions {
     private static CustomFunctions instance = new CustomFunctions();
     private static InstanceStorage vars = InstanceStorage.getInstance();

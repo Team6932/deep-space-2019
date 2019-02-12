@@ -15,9 +15,8 @@ import edu.wpi.first.cameraserver.CameraServer;
 import edu.wpi.first.networktables.NetworkTableEntry;
 import edu.wpi.first.vision.VisionThread;
 import edu.wpi.first.wpilibj.TimedRobot;
-import edu.wpi.first.wpilibj.shuffleboard.Shuffleboard;
-import edu.wpi.first.wpilibj.shuffleboard.ShuffleboardLayout;
-import edu.wpi.first.wpilibj.shuffleboard.ShuffleboardTab;
+import edu.wpi.first.wpilibj.*;
+
 
 public class Robot extends TimedRobot {
   private InstanceStorage vars = InstanceStorage.getInstance();
@@ -39,24 +38,17 @@ public class Robot extends TimedRobot {
     // Reset gyro
     vars.gyro.calibrate();
     vars.gyro.reset();
-    m_maxSpeed = Shuffleboard.getTab("Configuration").add("Max Speed", 1).withWidget("Number Slider").withPosition(1, 1)
-        .withSize(2, 1).getEntry();
 
-    // Add the tank drive and encoders to a 'Drivebase' tab
-    ShuffleboardTab driveBaseTab = Shuffleboard.getTab("Drivebase");
-    driveBaseTab.add("Tank Drive", "derp");
-    // Put both encoders in a list layout
-    ShuffleboardLayout encoders = driveBaseTab.getLayout("List Layout", "Encoders").withPosition(0, 0).withSize(2, 2);
-    encoders.add("Left Encoder", "derp2");
-    encoders.add("Right Encoder", "m_rightEncoder");
+    // Ultrasonic
+    vars.leftUltra.setAutomaticMode(true);
+    vars.rightUltra.setAutomaticMode(true);
 
-    // Add the elevator motor and potentiometer to an 'Elevator' tab
-    ShuffleboardTab elevatorTab = Shuffleboard.getTab("Elevator");
-    elevatorTab.add("Motor", "derp");
-    elevatorTab.add("Potentiometer", "derp2");
+    // Pneumatic
+    //vars.compressor.setClosedLoopControl(true);
 
     UsbCamera camera = CameraServer.getInstance().startAutomaticCapture();
     camera.setResolution(IMG_WIDTH, IMG_HEIGHT);
+    camera.setExposureManual(-1);
 
     visionThread = new VisionThread(camera, new TapePipeline(), pipeline -> {
       if (pipeline.findContoursOutput().size() == 2) {
@@ -77,6 +69,7 @@ public class Robot extends TimedRobot {
         }*/
       } else {
         synchronized (imgLock) {
+          // Stop trying if nothing found
           sideSpeed = 0.0;
           driveSpeed = 0.0;
           rotateSpeed = 0.0;
@@ -85,6 +78,15 @@ public class Robot extends TimedRobot {
       }
     });
     visionThread.start();
+  }
+
+  @Override 
+  public void robotPeriodic() {
+    int leftUltraReading = (int) vars.leftUltra.getRangeMM();
+    int rightUltraReading = (int) vars.rightUltra.getRangeMM();
+    rotateSpeed = (leftUltraReading - rightUltraReading) * 0.003;
+    //System.out.println("Rotate: " + rotateSpeed + "\t/\tForward:" + driveSpeed);
+    System.out.println(/*vars.leftLine.getValue() + */"\t\t/\t\tLeft Ultra: " + leftUltraReading + "\t\tRight Ultra: " + rightUltraReading);
   }
 
   @Override
@@ -123,6 +125,13 @@ public class Robot extends TimedRobot {
         }*/
         vars.drive.driveCartesian(sideSpeed, driveSpeed, rotateSpeed);
       } else {
+        if(vars.driveControl.getRawButton(2)) {
+          vars.claw.set(DoubleSolenoid.Value.kForward);
+          System.out.println("Forward");
+        } else {
+          vars.claw.set(DoubleSolenoid.Value.kReverse);
+          System.out.println("Reverse");
+        }
         double ySpeed = func.controlCurve(vars.driveControl.getRawAxis(vars.yAxis));
         double xSpeed = func.controlCurve(vars.driveControl.getRawAxis(vars.xAxis)) * -1;
         double zRotation = func.controlCurve(vars.driveControl.getRawAxis(vars.zAxis));

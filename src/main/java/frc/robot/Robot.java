@@ -7,15 +7,11 @@
 
 package frc.robot;
 
-import java.util.HashMap;
-import java.util.Map;
-
 import org.opencv.core.Rect;
 import org.opencv.imgproc.Imgproc;
 
 import edu.wpi.cscore.UsbCamera;
 import edu.wpi.first.cameraserver.CameraServer;
-import edu.wpi.first.networktables.NetworkTableEntry;
 import edu.wpi.first.vision.VisionThread;
 import edu.wpi.first.wpilibj.TimedRobot;
 import edu.wpi.first.wpilibj.DoubleSolenoid;
@@ -23,7 +19,6 @@ import edu.wpi.first.wpilibj.DoubleSolenoid;
 public class Robot extends TimedRobot {
   private InstanceStorage vars = InstanceStorage.getInstance();
   private CustomFunctions func = CustomFunctions.getInstance();
-  private NetworkTableEntry m_maxSpeed;
 
   private VisionThread visionThread;
   private double driveSpeed = 0.0;
@@ -58,7 +53,7 @@ public class Robot extends TimedRobot {
     camera.setExposureManual(-1);
 
     // Start the vision processing thread for reflective tape detection
-    visionThread = new VisionThread(camera, new TapePipeline(), pipeline -> {
+    visionThread = new VisionThread(camera, new ReflectiveTapePipeline(), pipeline -> {
       // Get 2 biggest objects found and put them in firstTape / secondTape
       // { index, tape area }
       int[] firstTape = { -1, -1 };
@@ -105,6 +100,7 @@ public class Robot extends TimedRobot {
 
   @Override
   public void robotPeriodic() {
+    // Ultrasonic drive system
     int leftUltraReading = (int) vars.leftUltra.getRangeMM();
     int rightUltraReading = (int) vars.rightUltra.getRangeMM();
     int avgReading = (leftUltraReading + rightUltraReading) / 2;
@@ -120,8 +116,9 @@ public class Robot extends TimedRobot {
       // System.out.println(/*vars.leftLine.getValue() + */"\t\t/\t\tLeft Ultra: " +
       // leftUltraReading + "\t\tRight Ultra: " + rightUltraReading);
     } else {
-      // Do not rotate if at least not 500mm close
+      // Do not rotate or drive if at least not 500mm close
       rotateSpeed = 0;
+      driveSpeed = 0;
     }
   }
 
@@ -136,7 +133,6 @@ public class Robot extends TimedRobot {
   @Override
   public void teleopPeriodic() {
     // Drive robot
-    System.out.println(vars.joystick.getRawAxis(1) * 0.5);
     vars.lift.set(vars.joystick.getRawAxis(1) * 0.5);
 
     if (vars.lifting == true) {

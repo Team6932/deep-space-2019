@@ -6,6 +6,7 @@ import edu.wpi.first.wpilibj.DoubleSolenoid;
 import edu.wpi.first.wpilibj.Joystick;
 import edu.wpi.first.wpilibj.PWMVictorSPX;
 import edu.wpi.first.wpilibj.Spark;
+import edu.wpi.first.wpilibj.Ultrasonic;
 import edu.wpi.first.wpilibj.drive.MecanumDrive;
 import edu.wpi.first.wpilibj.interfaces.Gyro;
 
@@ -51,12 +52,8 @@ public class InstanceStorage {
 
     // Lift logic
     public boolean lifting = true; // 0 do nothing, 1-3 positions
-    public double targetLiftHeight = 0;
-    public double liftError = 0;
-    public double liftErrorSum = 0;
     public double liftP = 0.003;
     public double liftI = 0;
-    public double liftD = 0;
 
     public static InstanceStorage getInstance() {
         return instance;

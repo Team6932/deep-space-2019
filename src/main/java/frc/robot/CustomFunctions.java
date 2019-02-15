@@ -1,7 +1,5 @@
 package frc.robot;
 
-import edu.wpi.first.wpilibj.AnalogInput;
-
 public class CustomFunctions {
     private static CustomFunctions instance = new CustomFunctions();
     private static InstanceStorage vars = InstanceStorage.getInstance();
@@ -9,8 +7,6 @@ public class CustomFunctions {
     public static CustomFunctions getInstance() {
         return instance;
     }
-
-    // Non-blocking functions
 
     // Adjust joystick values for slider
     public double controlCurve(double val) {

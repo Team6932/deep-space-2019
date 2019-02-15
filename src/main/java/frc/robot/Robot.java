@@ -86,7 +86,7 @@ public class Robot extends TimedRobot {
     int rightUltraReading = (int) vars.rightUltra.getRangeMM();
     rotateSpeed = (leftUltraReading - rightUltraReading) * 0.003;
     //System.out.println("Rotate: " + rotateSpeed + "\t/\tForward:" + driveSpeed);
-    System.out.println(/*vars.leftLine.getValue() + */"\t\t/\t\tLeft Ultra: " + leftUltraReading + "\t\tRight Ultra: " + rightUltraReading);
+    //System.out.println(/*vars.leftLine.getValue() + */"\t\t/\t\tLeft Ultra: " + leftUltraReading + "\t\tRight Ultra: " + rightUltraReading);
   }
 
   @Override
@@ -116,6 +116,14 @@ public class Robot extends TimedRobot {
   @Override
   public void teleopPeriodic() {
       // Drive robot
+      System.out.println(vars.joystick.getRawAxis(1) * 0.5);
+      vars.lift.set(vars.joystick.getRawAxis(1) * 0.5);
+      if(vars.lifting == true) {
+        /*vars.liftError = vars.targetLiftHeight - vars.frontUltra.getRangeMM();
+        vars.liftErrorSum += vars.liftError;
+        double targetLiftValue = (vars.liftError * vars.liftP) + (vars.liftErrorSum * vars.liftI);
+        vars.lift.set(targetLiftValue);*/
+      } else {
       if(vars.driveControl.getRawButton(1)) {
         /*if(Math.abs(sideSpeed) > 0.1) {
           sideSpeed += Math.signum(sideSpeed) * 0.1;
@@ -138,5 +146,6 @@ public class Robot extends TimedRobot {
         vars.drive.driveCartesian(ySpeed, xSpeed, zRotation);
         //vars.drive.arcadeDrive(ySpeed, zRotation);
       }
+    }
   }
 }

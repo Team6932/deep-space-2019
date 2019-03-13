@@ -42,15 +42,15 @@ public class ReflectiveTapePipeline implements VisionPipeline {
 	@Override	public void process(Mat source0) {
 		// Step HSV_Threshold0:
 		Mat hsvThresholdInput = source0;
-		double[] hsvThresholdHue = {82.55395683453237, 91.37521222410867};
-		double[] hsvThresholdSaturation = {64.20863309352518, 255.0};
-		double[] hsvThresholdValue = {123.83093525179855, 255.0};
+		double[] hsvThresholdHue = {77.6978417266187, 95.9592529711375};
+		double[] hsvThresholdSaturation = {41.276978417266186, 255.0};
+		double[] hsvThresholdValue = {165.10791366906474, 255.0};
 		hsvThreshold(hsvThresholdInput, hsvThresholdHue, hsvThresholdSaturation, hsvThresholdValue, hsvThresholdOutput);
 
 		// Step Blur0:
 		Mat blurInput = hsvThresholdOutput;
 		BlurType blurType = BlurType.get("Median Filter");
-		double blurRadius = 2.7027027027027026;
+		double blurRadius = 5.405405405405405;
 		blur(blurInput, blurType, blurRadius, blurOutput);
 
 		// Step Find_Contours0:

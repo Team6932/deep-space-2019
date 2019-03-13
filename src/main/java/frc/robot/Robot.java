@@ -14,6 +14,7 @@ import edu.wpi.cscore.UsbCamera;
 import edu.wpi.first.cameraserver.CameraServer;
 import edu.wpi.first.vision.VisionThread;
 import edu.wpi.first.wpilibj.TimedRobot;
+import edu.wpi.first.wpilibj.Timer;
 import edu.wpi.first.wpilibj.DoubleSolenoid;
 
 public class Robot extends TimedRobot {
@@ -21,13 +22,23 @@ public class Robot extends TimedRobot {
   private CustomFunctions func = CustomFunctions.getInstance();
 
   private VisionThread visionThread;
+  private VisionThread groundVisionThread;
+  Timer timer = new Timer();
+  Timer timer2 = new Timer();
   private double driveSpeed = 0.0;
   private double sideSpeed = 0.0;
   private double rotateSpeed = 0.0;
 
+  private double leftUltraReading = 0;
+  private double rightUltraReading = 0;
+
   private double targetLiftHeight = 0;
   private double liftError = 0;
   private double liftErrorSum = 0;
+
+  private double rotateError = 0;
+
+  private double forwardError = 0;
 
   private static final int IMG_WIDTH = 320;
   private static final int IMG_HEIGHT = 180;
@@ -37,80 +48,48 @@ public class Robot extends TimedRobot {
   @Override
   public void robotInit() {
     // Reset gyro
-    vars.gyro.calibrate();
     vars.gyro.reset();
+    vars.gyro.calibrate();
+
+    vars.drive.setSafetyEnabled(false); // TODO: Do not leave this enabled
 
     // Let ultrasonic sensors poll automatically
     vars.leftUltra.setAutomaticMode(true);
     vars.rightUltra.setAutomaticMode(true);
+    vars.frontUltra.setAutomaticMode(true);
 
     // Enable the compressor
-    // vars.compressor.setClosedLoopControl(true);
-
-    // Initialize camera
-    UsbCamera camera = CameraServer.getInstance().startAutomaticCapture();
-    camera.setResolution(IMG_WIDTH, IMG_HEIGHT);
-    camera.setExposureManual(-1);
-
-    // Start the vision processing thread for reflective tape detection
-    visionThread = new VisionThread(camera, new ReflectiveTapePipeline(), pipeline -> {
-      // Get 2 biggest objects found and put them in firstTape / secondTape
-      // { index, tape area }
-      int[] firstTape = { -1, -1 };
-      int[] secondTape = { -1, -1 };
-      for (int i = 0; i < pipeline.findContoursOutput().size(); i++) {
-        double currentTapeArea = Imgproc.boundingRect(pipeline.findContoursOutput().get(i)).area();
-        if (currentTapeArea > firstTape[1]) {
-          secondTape = firstTape;
-          firstTape = new int[] { i, (int) currentTapeArea };
-        }
-      }
-
-      // If second tape isn't -1, there have been at least 2 matches found
-      if (secondTape[0] != -1) {
-        // Grab tape from the index in the arrays
-        Rect tape1 = Imgproc.boundingRect(pipeline.findContoursOutput().get(firstTape[0]));
-        Rect tape2 = Imgproc.boundingRect(pipeline.findContoursOutput().get(secondTape[0]));
-
-        // Run only in sync with imgLock
-        synchronized (imgLock) {
-          // Get approximate distance and use it to drive forward
-          // Replaced by Ultrasonic drive
-          /*
-           * double areaAvg = ((tape2.area() + tape1.area()) / 2); driveSpeed = (2900 -
-           * areaAvg) * 0.00007;
-           */
-
-          // Look at tape and line up horizontally
-          int centerX = IMG_WIDTH / 2;
-          int tape2Distance = ((tape2.x + (tape2.width / 2)) - centerX) * -1;
-          int tape1Distance = (tape1.x + (tape1.width / 2)) - centerX;
-          sideSpeed = (tape1Distance - tape2Distance) * 0.0015; // TODO: Fine tune this value
-        }
-      } else {
-        synchronized (imgLock) {
-          // Do not move if nothing found
-          sideSpeed = 0.0;
-          driveSpeed = 0.0;
-        }
-      }
-    });
-    visionThread.start();
+    //vars.compressor.setClosedLoopControl(true);
   }
 
   @Override
   public void robotPeriodic() {
     // Ultrasonic drive system
-    int leftUltraReading = (int) vars.leftUltra.getRangeMM();
-    int rightUltraReading = (int) vars.rightUltra.getRangeMM();
-    int avgReading = (leftUltraReading + rightUltraReading) / 2;
+    if (vars.leftUltra.isRangeValid()) {
+      leftUltraReading = (int) vars.leftUltra.getRangeMM();
+    } else {
+      leftUltraReading -= 5;
+    }
+    if (vars.rightUltra.isRangeValid()) {
+      rightUltraReading = (int) vars.rightUltra.getRangeMM();
+    } else {
+      rightUltraReading -= 5;
+    }
+    /*
+     * if (vars.frontUltra.isRangeValid()) { frontUltraReading = (int)
+     * vars.frontUltra.getRangeMM(); }
+     */
+    // System.out.println(leftUltraReading + " / " + rightUltraReading);
+    double avgReading = (leftUltraReading + rightUltraReading) / 2;
 
-    if (avgReading < 500) {
+    if (avgReading < 700) {
       // Rotate based on the difference between ultrasonic readings
-      rotateSpeed = (leftUltraReading - rightUltraReading) * 0.003; // TODO: Fine tune this value
+      rotateError = leftUltraReading - rightUltraReading;
+      rotateSpeed = (rotateError * vars.rotateP); // TODO: Fine tune this value
 
       // Drive forward based on ultrasonic reading averages
-      driveSpeed = avgReading * 0.003; // TODO: Fine tune this value
+      forwardError = avgReading - 240;
+      //driveSpeed = (forwardError * vars.ultraP); // TODO: Fine tune this value
 
       // System.out.println("Rotate: " + rotateSpeed + "\t/\tForward:" + driveSpeed);
       // System.out.println(/*vars.leftLine.getValue() + */"\t\t/\t\tLeft Ultra: " +
@@ -118,16 +97,38 @@ public class Robot extends TimedRobot {
     } else {
       // Do not rotate or drive if at least not 500mm close
       rotateSpeed = 0;
-      driveSpeed = 0;
+      //driveSpeed = 0;
     }
+    // System.out.println(rotateSpeed + " / " + driveSpeed);
+    sideSpeed = (vars.leftLine.getVoltage() - (5 - vars.rightLine.getVoltage())) * 0.25;
+    //System.out.println(leftUltraReading + " / " + rightUltraReading + " / " + driveSpeed);
   }
 
   @Override
   public void autonomousInit() {
+    timer.reset();
+    timer.start();
   }
 
   @Override
   public void autonomousPeriodic() {
+    /*if (timer.get() < 2.0) {
+      vars.lift.set(0.2);
+    } else if (timer.get() >= 2.0 && timer.get() < 3.0) {
+      vars.claw.set(DoubleSolenoid.Value.kForward);
+    } else if (timer.get() >= 3.0 && timer.get() < 4.0) {
+      vars.claw.set(DoubleSolenoid.Value.kReverse);
+    } else if (timer.get() >= 4.0 && timer.get() < 6.0) {
+      vars.lift.set(-0.15);
+    } else {
+      vars.lift.set(0);
+    }TODO: Enable*/
+  }
+
+  @Override
+  public void teleopInit() {
+    timer2.reset();
+    timer2.start();
   }
 
   @Override
@@ -138,31 +139,50 @@ public class Robot extends TimedRobot {
     if (vars.lifting == true) {
       // Basic P-I controller
       liftError = targetLiftHeight - vars.frontUltra.getRangeMM();
-      liftErrorSum += liftError;
       double targetLiftValue = (liftError * vars.liftP) + (liftErrorSum * vars.liftI);
-      vars.lift.set(targetLiftValue);
+      //vars.lift.set(targetLiftValue);
+      //vars.drive.driveCartesian(0, 0, 0);
     } else {
-      // Reset values for P-I controller if we're not lifting
-      liftError = 0;
-      liftErrorSum = 0;
 
       // Check if "X" is pressed on controller
       if (vars.driveControl.getRawButton(1)) {
         // Drive with variables set by visionThread + ultrasonic measuring
-        vars.drive.driveCartesian(sideSpeed, driveSpeed, rotateSpeed);
+        if (Math.abs(sideSpeed) > 0.3) {
+          sideSpeed = Math.signum(sideSpeed) * 0.3;
+        }
+        if (Math.abs(driveSpeed) > 0.25) {
+          driveSpeed = Math.signum(driveSpeed) * 0.25;
+        }
+        if (Math.abs(rotateSpeed) > 0.3) {
+          rotateSpeed = Math.signum(rotateSpeed) * 0.3;
+        }
+        //vars.drive.driveCartesian(sideSpeed, driveSpeed, rotateSpeed);
+        System.out.println(sideSpeed + " / " + driveSpeed + " / " + rotateSpeed);
       } else {
         // Claw solenoid control
-        if (vars.driveControl.getRawButton(2)) {
+        /*if (vars.driveControl.getRawButton(2)) {
           vars.claw.set(DoubleSolenoid.Value.kForward);
         } else {
           vars.claw.set(DoubleSolenoid.Value.kReverse);
         }
 
+        if (vars.driveControl.getRawButton(3)) {
+          timer2.reset();
+          timer2.start();
+          vars.trapDoor.set(DoubleSolenoid.Value.kReverse);
+        } else {
+          if (timer2.get() < 0.25) {
+            vars.trapDoor.set(DoubleSolenoid.Value.kForward);
+          } else {
+            vars.trapDoor.set(DoubleSolenoid.Value.kOff);
+          }
+        }TODO: Enable*/
+
         // Drive with controller
         double ySpeed = func.controlCurve(vars.driveControl.getRawAxis(vars.yAxis));
         double xSpeed = func.controlCurve(vars.driveControl.getRawAxis(vars.xAxis)) * -1;
         double zRotation = func.controlCurve(vars.driveControl.getRawAxis(vars.zAxis));
-        vars.drive.driveCartesian(ySpeed, xSpeed, zRotation);
+        //vars.drive.driveCartesian(ySpeed, xSpeed, zRotation);
       }
     }
   }

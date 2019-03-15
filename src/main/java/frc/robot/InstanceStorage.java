@@ -39,10 +39,10 @@ public class InstanceStorage {
     public AnalogInput rightLine = new AnalogInput(1);
 
     // Pneumatics
-    /*int pcmID = 1;
+    int pcmID = 1;
     Compressor compressor = new Compressor(pcmID);
     DoubleSolenoid claw = new DoubleSolenoid(pcmID, 1, 0);
-    DoubleSolenoid trapDoor = new DoubleSolenoid(pcmID, 5, 4);*/
+    DoubleSolenoid trapDoor = new DoubleSolenoid(pcmID, 5, 4);
 
     // Joystick/Controller
     public Joystick joystick = new Joystick(0);

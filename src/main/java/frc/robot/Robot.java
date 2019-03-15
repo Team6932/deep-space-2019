@@ -21,8 +21,6 @@ public class Robot extends TimedRobot {
   private InstanceStorage vars = InstanceStorage.getInstance();
   private CustomFunctions func = CustomFunctions.getInstance();
 
-  private VisionThread visionThread;
-  private VisionThread groundVisionThread;
   Timer timer = new Timer();
   Timer timer2 = new Timer();
   private double driveSpeed = 0.0;
@@ -32,18 +30,14 @@ public class Robot extends TimedRobot {
   private double leftUltraReading = 0;
   private double rightUltraReading = 0;
 
-  private double targetLiftHeight = 0;
-  private double liftError = 0;
-  private double liftErrorSum = 0;
-
   private double rotateError = 0;
 
-  private double forwardError = 0;
+  private boolean clawOut = true;
 
-  private static final int IMG_WIDTH = 320;
-  private static final int IMG_HEIGHT = 180;
-
-  private final Object imgLock = new Object();
+  private double desiredClawPosition = 0;
+  private double clawTimeNeeded = 0;
+  private boolean clawMoving = false;
+  private boolean clawGoingUp = false;
 
   @Override
   public void robotInit() {
@@ -51,18 +45,16 @@ public class Robot extends TimedRobot {
     vars.gyro.reset();
     vars.gyro.calibrate();
 
-    vars.drive.setSafetyEnabled(false); // TODO: Do not leave this enabled
-
     // Let ultrasonic sensors poll automatically
-    vars.leftUltra.setAutomaticMode(true);
-    vars.rightUltra.setAutomaticMode(true);
-    vars.frontUltra.setAutomaticMode(true);
+    //vars.leftUltra.setAutomaticMode(true);
+    //vars.rightUltra.setAutomaticMode(true);
+    //vars.frontUltra.setAutomaticMode(true);
 
     // Enable the compressor
-    //vars.compressor.setClosedLoopControl(true);
+    vars.compressor.setClosedLoopControl(true);
   }
 
-  @Override
+  /*@Override
   public void robotPeriodic() {
     // Ultrasonic drive system
     if (vars.leftUltra.isRangeValid()) {
@@ -78,7 +70,7 @@ public class Robot extends TimedRobot {
     /*
      * if (vars.frontUltra.isRangeValid()) { frontUltraReading = (int)
      * vars.frontUltra.getRangeMM(); }
-     */
+     *
     // System.out.println(leftUltraReading + " / " + rightUltraReading);
     double avgReading = (leftUltraReading + rightUltraReading) / 2;
 
@@ -88,41 +80,41 @@ public class Robot extends TimedRobot {
       rotateSpeed = (rotateError * vars.rotateP); // TODO: Fine tune this value
 
       // Drive forward based on ultrasonic reading averages
-      forwardError = avgReading - 240;
-      //driveSpeed = (forwardError * vars.ultraP); // TODO: Fine tune this value
+      double forwardError = avgReading - 240;
+      driveSpeed = (forwardError * vars.ultraP); // TODO: Fine tune this value
 
       // System.out.println("Rotate: " + rotateSpeed + "\t/\tForward:" + driveSpeed);
-      // System.out.println(/*vars.leftLine.getValue() + */"\t\t/\t\tLeft Ultra: " +
+      // System.out.println(vars.leftLine.getValue() + "\t\t/\t\tLeft Ultra: " +
       // leftUltraReading + "\t\tRight Ultra: " + rightUltraReading);
     } else {
       // Do not rotate or drive if at least not 500mm close
       rotateSpeed = 0;
-      //driveSpeed = 0;
+      // driveSpeed = 0;
     }
     // System.out.println(rotateSpeed + " / " + driveSpeed);
     sideSpeed = (vars.leftLine.getVoltage() - (5 - vars.rightLine.getVoltage())) * 0.25;
-    //System.out.println(leftUltraReading + " / " + rightUltraReading + " / " + driveSpeed);
-  }
+    // System.out.println(leftUltraReading + " / " + rightUltraReading + " / " +
+    // driveSpeed);
+  }*/
 
   @Override
   public void autonomousInit() {
-    timer.reset();
-    timer.start();
+    //timer.reset();
+    //timer.start();
+    teleopInit();
   }
 
   @Override
   public void autonomousPeriodic() {
-    /*if (timer.get() < 2.0) {
-      vars.lift.set(0.2);
-    } else if (timer.get() >= 2.0 && timer.get() < 3.0) {
-      vars.claw.set(DoubleSolenoid.Value.kForward);
-    } else if (timer.get() >= 3.0 && timer.get() < 4.0) {
-      vars.claw.set(DoubleSolenoid.Value.kReverse);
-    } else if (timer.get() >= 4.0 && timer.get() < 6.0) {
-      vars.lift.set(-0.15);
-    } else {
-      vars.lift.set(0);
-    }TODO: Enable*/
+    /*
+     * if (timer.get() < 2.0) { vars.lift.set(0.2); } else if (timer.get() >= 2.0 &&
+     * timer.get() < 3.0) { vars.claw.set(DoubleSolenoid.Value.kForward); } else if
+     * (timer.get() >= 3.0 && timer.get() < 4.0) {
+     * vars.claw.set(DoubleSolenoid.Value.kReverse); } else if (timer.get() >= 4.0
+     * && timer.get() < 6.0) { vars.lift.set(-0.15); } else { vars.lift.set(0);
+     * }TODO: Enable
+     */
+    teleopPeriodic();
   }
 
   @Override
@@ -133,57 +125,62 @@ public class Robot extends TimedRobot {
 
   @Override
   public void teleopPeriodic() {
-    // Drive robot
-    vars.lift.set(vars.joystick.getRawAxis(1) * 0.5);
+    // Drive with controller
+    double ySpeed = func.controlCurve(vars.driveControl.getRawAxis(vars.yAxis));
+    double xSpeed = func.controlCurve(vars.driveControl.getRawAxis(vars.xAxis)) * -1;
+    double zRotation = func.controlCurve(vars.driveControl.getRawAxis(vars.zAxis));
+    vars.drive.driveCartesian(ySpeed, xSpeed, zRotation);
 
-    if (vars.lifting == true) {
-      // Basic P-I controller
-      liftError = targetLiftHeight - vars.frontUltra.getRangeMM();
-      double targetLiftValue = (liftError * vars.liftP) + (liftErrorSum * vars.liftI);
-      //vars.lift.set(targetLiftValue);
-      //vars.drive.driveCartesian(0, 0, 0);
+    if (vars.driveControl.getRawButtonPressed(1)) {
+      clawOut = !clawOut; // Reverse whatever's there
+    }
+    if (clawOut) {
+      vars.claw.set(DoubleSolenoid.Value.kForward);
     } else {
+      vars.claw.set(DoubleSolenoid.Value.kReverse);
+    }
 
-      // Check if "X" is pressed on controller
-      if (vars.driveControl.getRawButton(1)) {
-        // Drive with variables set by visionThread + ultrasonic measuring
-        if (Math.abs(sideSpeed) > 0.3) {
-          sideSpeed = Math.signum(sideSpeed) * 0.3;
+    if (vars.driveControl.getRawButtonPressed(2)) {
+      if (!clawMoving) {
+        desiredClawPosition -= 1;
+        clawMoving = true;
+        clawGoingUp = false;
+        clawTimeNeeded = timer2.get() + 0.5;
+        if (desiredClawPosition < 0) {
+          desiredClawPosition = 0;
+          clawMoving = false;
+          clawTimeNeeded = 0;
         }
-        if (Math.abs(driveSpeed) > 0.25) {
-          driveSpeed = Math.signum(driveSpeed) * 0.25;
+      }
+    } else if (vars.driveControl.getRawButtonPressed(4)) {
+      if (!clawMoving) {
+        desiredClawPosition += 1;
+        clawMoving = true;
+        clawTimeNeeded = timer2.get() + 0.5;
+        clawGoingUp = true;
+        if (desiredClawPosition < 2) {
+          desiredClawPosition = 2;
+          clawMoving = false;
+          clawTimeNeeded = 0;
         }
-        if (Math.abs(rotateSpeed) > 0.3) {
-          rotateSpeed = Math.signum(rotateSpeed) * 0.3;
-        }
-        //vars.drive.driveCartesian(sideSpeed, driveSpeed, rotateSpeed);
-        System.out.println(sideSpeed + " / " + driveSpeed + " / " + rotateSpeed);
-      } else {
-        // Claw solenoid control
-        /*if (vars.driveControl.getRawButton(2)) {
-          vars.claw.set(DoubleSolenoid.Value.kForward);
-        } else {
-          vars.claw.set(DoubleSolenoid.Value.kReverse);
-        }
-
-        if (vars.driveControl.getRawButton(3)) {
-          timer2.reset();
-          timer2.start();
-          vars.trapDoor.set(DoubleSolenoid.Value.kReverse);
-        } else {
-          if (timer2.get() < 0.25) {
-            vars.trapDoor.set(DoubleSolenoid.Value.kForward);
-          } else {
-            vars.trapDoor.set(DoubleSolenoid.Value.kOff);
-          }
-        }TODO: Enable*/
-
-        // Drive with controller
-        double ySpeed = func.controlCurve(vars.driveControl.getRawAxis(vars.yAxis));
-        double xSpeed = func.controlCurve(vars.driveControl.getRawAxis(vars.xAxis)) * -1;
-        double zRotation = func.controlCurve(vars.driveControl.getRawAxis(vars.zAxis));
-        //vars.drive.driveCartesian(ySpeed, xSpeed, zRotation);
       }
     }
+
+    if (!clawMoving) {
+      clawTimeNeeded = 0;
+    }
+
+    if (clawTimeNeeded > timer2.get()) {
+      if (clawGoingUp) {
+        vars.lift.set(0.35);
+      } else {
+        vars.lift.set(-0.30);
+      }
+    } else {
+      vars.lift.set(0.1);
+      clawMoving = false;
+    }
+
+    System.out.println(desiredClawPosition + " / " + clawTimeNeeded + " / " + timer2.get());
   }
 }

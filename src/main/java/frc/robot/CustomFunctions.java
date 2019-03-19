@@ -11,12 +11,6 @@ public class CustomFunctions {
         return instance;
     }
 
-    // Adjust joystick values for slider
-    public double controlCurve(double val) {
-        //return val * (((vars.driveControl.getRawAxis(vars.ratioAxis) * -1) + 1) / 2);
-        return val * 0.275;
-    }
-
     public void gyroCorrectedDrive(double ySpeed, double xSpeed, double zRotation) {
         targetHeading += zRotation;
         double currentHeading = vars.gyro.getAngle();

@@ -2,7 +2,7 @@ package frc.robot;
 
 public class CustomFunctions {
     private static CustomFunctions instance = new CustomFunctions();
-    private static InstanceStorage vars = InstanceStorage.getInstance();
+    private static RobotHW vars = RobotHW.getInstance();
     private double targetHeading = 0;
     private double gyroError = 0;
     private double gyroErrorSum = 0;

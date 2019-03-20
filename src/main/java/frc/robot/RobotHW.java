@@ -11,9 +11,9 @@ import edu.wpi.first.wpilibj.Ultrasonic;
 import edu.wpi.first.wpilibj.drive.MecanumDrive;
 import edu.wpi.first.wpilibj.interfaces.Gyro;
 
-public class InstanceStorage {
+public class RobotHW {
 
-    private static InstanceStorage instance = new InstanceStorage();
+    private static RobotHW instance = new RobotHW();
 
     // Sensors
     Gyro gyro = new ADXRS450_Gyro();
@@ -67,7 +67,7 @@ public class InstanceStorage {
     public double driveP = 0.002;
     public double driveI = 0;
 
-    public static InstanceStorage getInstance() {
+    public static RobotHW getInstance() {
         return instance;
     }
 

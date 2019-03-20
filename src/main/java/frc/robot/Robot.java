@@ -12,13 +12,15 @@ import org.opencv.imgproc.Imgproc;
 
 import edu.wpi.cscore.UsbCamera;
 import edu.wpi.first.cameraserver.CameraServer;
+import edu.wpi.first.networktables.NetworkTable;
+import edu.wpi.first.networktables.NetworkTableInstance;
 import edu.wpi.first.vision.VisionThread;
 import edu.wpi.first.wpilibj.TimedRobot;
 import edu.wpi.first.wpilibj.Timer;
 import edu.wpi.first.wpilibj.DoubleSolenoid;
 
 public class Robot extends TimedRobot {
-  private InstanceStorage vars = InstanceStorage.getInstance();
+  private RobotHW robot = RobotHW.getInstance();
   private CustomFunctions func = CustomFunctions.getInstance();
 
   Timer timer = new Timer();
@@ -36,6 +38,8 @@ public class Robot extends TimedRobot {
   private boolean liftOut = false;
   private boolean lowRates = false;
 
+  private NetworkTableInstance ntinst = NetworkTableInstance.getDefault();
+
   private double desiredClawPosition = 0;
   private double clawTimeNeeded = 0;
   private boolean clawMoving = false;
@@ -44,8 +48,8 @@ public class Robot extends TimedRobot {
   @Override
   public void robotInit() {
     // Reset gyro
-    vars.gyro.reset();
-    vars.gyro.calibrate();
+    robot.gyro.reset();
+    robot.gyro.calibrate();
 
     // Let ultrasonic sensors poll automatically
     // vars.leftUltra.setAutomaticMode(true);
@@ -53,7 +57,20 @@ public class Robot extends TimedRobot {
     // vars.frontUltra.setAutomaticMode(true);
 
     // Enable the compressor
-    vars.compressor.setClosedLoopControl(true);
+    robot.compressor.setClosedLoopControl(true);
+  }
+
+  @Override
+  public void robotPeriodic() {
+    NetworkTable dsInfo = ntinst.getTable("dsInfo");
+    dsInfo.getEntry("lowRates").setBoolean(lowRates);
+    dsInfo.getEntry("clawOut").setBoolean(clawOut);
+    dsInfo.getEntry("liftOut").setBoolean(liftOut);
+    double robotLineValue = (5 - robot.rightLine.getVoltage()) - (robot.leftLine.getVoltage());
+    double robotLineAvg = (5 - robot.rightLine.getVoltage()) + (robot.leftLine.getVoltage()) / 2;
+    dsInfo.getEntry("lineSensor").setDouble(robotLineValue);
+    dsInfo.getEntry("lineAvg").setDouble(robotLineAvg);
+    dsInfo.getEntry("onLine").setBoolean((Math.abs(robotLineValue - 0.16) < 0.2) && robotLineAvg < 5);
   }
 
   /*
@@ -115,34 +132,34 @@ public class Robot extends TimedRobot {
   @Override
   public void teleopPeriodic() {
     // Drive with controller
-    if (vars.driveControl.getRawButtonPressed(8)) {
+    if (robot.driveControl.getRawButtonPressed(8)) {
       lowRates = !lowRates; // Reverse whatever's there
     }
-    double ySpeed = vars.driveControl.getRawAxis(vars.yAxis);
-    double xSpeed = vars.driveControl.getRawAxis(vars.xAxis) * -1;
-    double zRotation = vars.driveControl.getRawAxis(vars.zAxis);
-    double multiplier = 0.7;
+    double ySpeed = robot.driveControl.getRawAxis(robot.yAxis);
+    double xSpeed = robot.driveControl.getRawAxis(robot.xAxis) * -1;
+    double zRotation = robot.driveControl.getRawAxis(robot.zAxis);
+    double multiplier = 0.9;
     if (lowRates) {
       multiplier = 0.3;
     }
-    vars.drive.driveCartesian(ySpeed * multiplier, xSpeed * multiplier, zRotation * multiplier);
+    robot.drive.driveCartesian(ySpeed * multiplier, xSpeed * multiplier, zRotation * multiplier);
 
-    if (vars.driveControl.getRawButtonPressed(1)) {
+    if (robot.driveControl.getRawButtonPressed(1)) {
       clawOut = !clawOut; // Reverse whatever's there
     }
     if (clawOut) {
-      vars.claw.set(DoubleSolenoid.Value.kForward);
+      robot.claw.set(DoubleSolenoid.Value.kForward);
     } else {
-      vars.claw.set(DoubleSolenoid.Value.kReverse);
+      robot.claw.set(DoubleSolenoid.Value.kReverse);
     }
 
-    if (vars.driveControl.getRawButtonPressed(3)) {
+    if (robot.driveControl.getRawButtonPressed(3)) {
       liftOut = !liftOut; // Reverse whatever's there
     }
     if (liftOut) {
-      vars.trapDoor.set(DoubleSolenoid.Value.kForward);
+      robot.trapDoor.set(DoubleSolenoid.Value.kForward);
     } else {
-      vars.trapDoor.set(DoubleSolenoid.Value.kReverse);
+      robot.trapDoor.set(DoubleSolenoid.Value.kReverse);
     }
 
     /*
@@ -165,12 +182,12 @@ public class Robot extends TimedRobot {
      * timer2.get());
      */
 
-    if (vars.driveControl.getRawButton(2)) {
-      vars.lift.set(-0.30);
-    } else if (vars.driveControl.getRawButton(4)) {
-      vars.lift.set(0.30);
+    if (robot.driveControl.getPOV() == 180) {
+      robot.lift.set(-0.30);
+    } else if (robot.driveControl.getPOV() == 0) {
+      robot.lift.set(0.30);
     } else {
-      vars.lift.set(0.1);
+      robot.lift.set(0.0);
     }
   }
 }

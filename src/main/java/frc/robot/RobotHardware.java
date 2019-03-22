@@ -3,17 +3,19 @@ package frc.robot;
 import edu.wpi.first.wpilibj.ADXRS450_Gyro;
 import edu.wpi.first.wpilibj.AnalogInput;
 import edu.wpi.first.wpilibj.Compressor;
+import edu.wpi.first.wpilibj.DigitalInput;
 import edu.wpi.first.wpilibj.DoubleSolenoid;
 import edu.wpi.first.wpilibj.Joystick;
 import edu.wpi.first.wpilibj.PWMVictorSPX;
+import edu.wpi.first.wpilibj.PowerDistributionPanel;
 import edu.wpi.first.wpilibj.Spark;
 import edu.wpi.first.wpilibj.Ultrasonic;
 import edu.wpi.first.wpilibj.drive.MecanumDrive;
 import edu.wpi.first.wpilibj.interfaces.Gyro;
 
-public class RobotHW {
+public class RobotHardware {
 
-    private static RobotHW instance = new RobotHW();
+    private static RobotHardware instance = new RobotHardware();
 
     // Sensors
     Gyro gyro = new ADXRS450_Gyro();
@@ -30,13 +32,17 @@ public class RobotHW {
     public DifferentialDrive drive = new DifferentialDrive(leftDrive, rightDrive);*/
 
     // Ultrasonic sensors
-    public Ultrasonic rightUltra = new Ultrasonic(1, 0);
+    /*public Ultrasonic rightUltra = new Ultrasonic(1, 0);
     public Ultrasonic leftUltra = new Ultrasonic(3, 2);
-    public Ultrasonic frontUltra = new Ultrasonic(4, 5);
+    public Ultrasonic frontUltra = new Ultrasonic(4, 5);*/
 
     // Line sensors
     public AnalogInput leftLine = new AnalogInput(0);
     public AnalogInput rightLine = new AnalogInput(1);
+    public DigitalInput liftSensor = new DigitalInput(0);
+
+    // PDP
+    //public PowerDistributionPanel pdp = new PowerDistributionPanel(0);
 
     // Pneumatics
     int pcmID = 1;
@@ -67,7 +73,7 @@ public class RobotHW {
     public double driveP = 0.002;
     public double driveI = 0;
 
-    public static RobotHW getInstance() {
+    public static RobotHardware getInstance() {
         return instance;
     }
 

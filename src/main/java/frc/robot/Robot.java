@@ -7,43 +7,23 @@
 
 package frc.robot;
 
-import org.opencv.core.Rect;
-import org.opencv.imgproc.Imgproc;
-
-import edu.wpi.cscore.UsbCamera;
-import edu.wpi.first.cameraserver.CameraServer;
 import edu.wpi.first.networktables.NetworkTable;
 import edu.wpi.first.networktables.NetworkTableInstance;
-import edu.wpi.first.vision.VisionThread;
 import edu.wpi.first.wpilibj.TimedRobot;
 import edu.wpi.first.wpilibj.Timer;
 import edu.wpi.first.wpilibj.DoubleSolenoid;
 
 public class Robot extends TimedRobot {
-  private RobotHW robot = RobotHW.getInstance();
-  private CustomFunctions func = CustomFunctions.getInstance();
+  private RobotHardware robot = RobotHardware.getInstance();
 
   Timer timer = new Timer();
   Timer timer2 = new Timer();
-  private double driveSpeed = 0.0;
-  private double sideSpeed = 0.0;
-  private double rotateSpeed = 0.0;
-
-  private double leftUltraReading = 0;
-  private double rightUltraReading = 0;
-
-  private double rotateError = 0;
 
   private boolean clawOut = false;
   private boolean liftOut = false;
   private boolean lowRates = false;
 
   private NetworkTableInstance ntinst = NetworkTableInstance.getDefault();
-
-  private double desiredClawPosition = 0;
-  private double clawTimeNeeded = 0;
-  private boolean clawMoving = false;
-  private boolean clawGoingUp = false;
 
   @Override
   public void robotInit() {
@@ -58,6 +38,10 @@ public class Robot extends TimedRobot {
 
     // Enable the compressor
     robot.compressor.setClosedLoopControl(true);
+
+    // Clear any sticky faults
+    robot.compressor.clearAllPCMStickyFaults();
+    //robot.pdp.clearStickyFaults();
   }
 
   @Override
@@ -70,7 +54,9 @@ public class Robot extends TimedRobot {
     double robotLineAvg = (5 - robot.rightLine.getVoltage()) + (robot.leftLine.getVoltage()) / 2;
     dsInfo.getEntry("lineSensor").setDouble(robotLineValue);
     dsInfo.getEntry("lineAvg").setDouble(robotLineAvg);
-    dsInfo.getEntry("onLine").setBoolean((Math.abs(robotLineValue - 0.16) < 0.2) && robotLineAvg < 5);
+    dsInfo.getEntry("onLine").setBoolean((Math.abs(robotLineValue - 0.16) < 0.4) && robotLineAvg < 5);
+    dsInfo.getEntry("liftSensor").setBoolean(robot.liftSensor.get());
+    dsInfo.getEntry("compressorEnabled").setBoolean(robot.compressor.enabled());
   }
 
   /*
@@ -105,21 +91,11 @@ public class Robot extends TimedRobot {
 
   @Override
   public void autonomousInit() {
-    // timer.reset();
-    // timer.start();
     teleopInit();
   }
 
   @Override
   public void autonomousPeriodic() {
-    /*
-     * if (timer.get() < 2.0) { vars.lift.set(0.2); } else if (timer.get() >= 2.0 &&
-     * timer.get() < 3.0) { vars.claw.set(DoubleSolenoid.Value.kForward); } else if
-     * (timer.get() >= 3.0 && timer.get() < 4.0) {
-     * vars.claw.set(DoubleSolenoid.Value.kReverse); } else if (timer.get() >= 4.0
-     * && timer.get() < 6.0) { vars.lift.set(-0.15); } else { vars.lift.set(0);
-     * }TODO: Enable
-     */
     teleopPeriodic();
   }
 
@@ -182,12 +158,12 @@ public class Robot extends TimedRobot {
      * timer2.get());
      */
 
-    if (robot.driveControl.getPOV() == 180) {
-      robot.lift.set(-0.30);
+    if (robot.driveControl.getPOV() == 180 && robot.liftSensor.get()) {
+        robot.lift.set(-0.30);
     } else if (robot.driveControl.getPOV() == 0) {
       robot.lift.set(0.30);
     } else {
-      robot.lift.set(0.0);
+      robot.lift.set(0.13);
     }
   }
 }
